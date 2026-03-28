@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - SpumaCar System</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: var(--bg-body);
+        }
+        .login-container {
+            background: var(--bg-card);
+            padding: 40px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .login-container h2 {
+            margin-bottom: 20px;
+            color: var(--text-main);
+        }
+        .login-container .form-group {
+            text-align: left;
+            margin-bottom: 15px;
+        }
+        .login-container .btn-primary {
+            margin-top: 10px;
+        }
+        .error-msg {
+            color: var(--danger);
+            font-size: 0.9rem;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <img src="logo.png" alt="SpumaCar" class="login-logo" onerror="this.style.display='none'">
+        <h2 id="form-title">Acesso ao Sistema</h2>
+        <form id="login-form">
+            <div class="form-group">
+                <label for="username">Usuário</label>
+                <input type="text" id="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Senha</label>
+                <input type="password" id="password" required>
+            </div>
+            <button type="submit" id="submit-btn" class="btn-primary">Entrar</button>
+            <div id="error-msg" class="error-msg">Usuário ou senha inválidos.</div>
+        </form>
+    </div>
+
+    <script>
+        let isSetupMode = false;
+
+        // Verifica se é o primeiro acesso (banco vazio)
+        async function checkSetup() {
+            try {
+                const res = await fetch('/api/check-setup');
+                const data = await res.json();
+                if (data.needsSetup) {
+                    isSetupMode = true;
+                    document.getElementById('form-title').innerText = 'Configuração Inicial';
+                    document.getElementById('submit-btn').innerText = 'Criar Admin';
+                    document.getElementById('error-msg').innerText = 'Crie o primeiro usuário administrador.';
+                    document.getElementById('error-msg').style.color = 'var(--text-muted)';
+                    document.getElementById('error-msg').style.display = 'block';
+                }
+            } catch (err) {
+                console.error('Erro ao checar setup:', err);
+            }
+        }
+
+        checkSetup();
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const login = document.getElementById('username').value;
+            const senha = document.getElementById('password').value;
+            const errorMsg = document.getElementById('error-msg');
+            
+            try {
+                const endpoint = isSetupMode ? '/api/setup' : '/api/login';
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ login, senha })
+                });
+                
+                if (res.ok) {
+                    if (isSetupMode) {
+                        alert('Administrador criado com sucesso! Faça login agora.');
+                        window.location.reload();
+                    } else {
+                        window.location.href = 'index.html';
+                    }
+                } else {
+                    const data = await res.json();
+                    errorMsg.innerText = data.error || 'Usuário ou senha inválidos.';
+                    errorMsg.style.color = 'var(--danger)';
+                    errorMsg.style.display = 'block';
+                }
+            } catch (err) {
+                errorMsg.innerText = 'Erro de conexão com o servidor.';
+                errorMsg.style.color = 'var(--danger)';
+                errorMsg.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
